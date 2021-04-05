@@ -16,7 +16,7 @@
 
 ### **内容と目的**
 
-本ハンズオンでは、Cloud Run を触ったことない方向けに、テスト アプリケーションを作成し、Cloud Firestore と Cloud Memorystore に接続してクエリをする方法などを学びます。
+本ハンズオンでは、Cloud Run を触ったことない方向けに、テスト アプリケーションを作成し、Cloud Firestore に接続してクエリをする方法などを学びます。
 本ハンズオンを通じて、 Cloud Run を使ったアプリケーション開発のイメージを掴んでもらうことが目的です。
 
 
@@ -32,8 +32,6 @@
 
 - Cloud Run
 - Cloud Firestore
-- Cloud Memorystore
-- Serverless VPC access
 
 
 <!-- Step 2 -->
@@ -47,23 +45,17 @@
   - gcloud コマンドラインツール設定
   - GCP 機能（API）有効化設定
 
-- [Cloud Run](https://cloud.google.com/run) を用いたアプリケーション開発：60 分
+- [Cloud Run](https://cloud.google.com/run) を用いたアプリケーション開発：40 分
   - サンプル アプリケーションのコンテナ化
   - コンテナの [Google Container Registry](https://cloud.google.com/container-registry/) への登録
   - Cloud Run のデプロイ
   - Cloud Firestore の利用
-  - サーバーレス VPC アクセスの設定
-  - Cloud Memorystore for Redis の利用
-  - チャレンジ問題
 
 - クリーンアップ：10 分
   - プロジェクトごと削除
   - （オプション）個別リソースの削除
     - Cloud Run の削除
     - Cloud Firestore の削除
-    - Cloud Memorystore の削除
-    - Serverless VPC Access コネクタの削除
-    - VPC Subnet と VPC の削除
     - Container Registry に登録したコンテナイメージの削除
     - Owner 権限をつけた dev-key.json の削除
     - サービスアカウント dev-egg-sa の削除
@@ -153,16 +145,12 @@ GCP では利用したい機能ごとに、有効化を行う必要がありま�
 - Cloud Build API
 - Google Container Registry API
 - Google Cloud Firestore API
-- Google Cloud Memorystore for Redis API
-- Serverless VPC Access API
 
 ```bash
 gcloud services enable \
   cloudbuild.googleapis.com \
   containerregistry.googleapis.com \
   run.googleapis.com \
-  redis.googleapis.com \
-  vpcaccess.googleapis.com \
   servicenetworking.googleapis.com
 ```
 
@@ -227,7 +215,7 @@ GCP コンソールの [Datastore](https://console.cloud.google.com/datastore/en
 <!-- Step 9 -->
 ## Cloud Run を用いたアプリケーション開発
 
-<walkthrough-tutorial-duration duration=60></walkthrough-tutorial-duration>
+<walkthrough-tutorial-duration duration=40></walkthrough-tutorial-duration>
 
 Cloud Run を利用したアプリケーション開発を体験します。
 
@@ -236,9 +224,6 @@ Cloud Run を利用したアプリケーション開発を体験します。
   - コンテナの [Google Container Registry](https://cloud.google.com/container-registry/) への登録
   - Cloud Run のデプロイ
   - Cloud Firestore の利用
-  - サーバーレス VPC アクセスの設定
-  - Cloud Memorystore for Redis の利用
-  - チャレンジ問題
 
 
 <!-- Step 10 -->
@@ -864,281 +849,7 @@ curl -X PUT -d '{"id": "<ID>", "email":"egg@example.com", "name":"Egg Taro"}' ${
 curl -X DELETE ${URL}/firestore/<ID>
 ```
 
-<walkthrough-footnote>Firestore についての実装は以上になります。次に Memorystore を操作できるようにしていきます。</walkthrough-footnote>
-
-
-<!-- Step 26 -->
-## Serverless VPC Access のコネクタを作成する
-
-ここからは Memorystore を Cloud Run と連携させていきます。
-まずは VPC ネットワークを作成します。
-
-```bash
-gcloud compute networks create eggvpc --subnet-mode=custom
-```
-
-```bash
-gcloud compute networks subnets create us-subnet --network=eggvpc --region=us-central1 --range=10.128.0.0/20
-```
-
-```bash
-gcloud compute networks vpc-access connectors create egg-vpc-connector \
---network eggvpc \
---region us-central1 \
---range 10.129.0.0/28
-```
-
-
-<!-- Step 27 -->
-## Memorystore for Redis を使う
-
-Memorystore for Redis を使ってデータのキャッシュをしてみましょう。
-Firestore のデータをキャッシュから返せるように修正していきます。
-
-### Redis インスタンスを作成する
-
-```bash
-gcloud redis instances create --network=eggvpc --region=us-central1 eggcache
-```
-
-
-<!-- Step 28 -->
-## Firestore ハンドラの修正
-
-**このステップで作成したコードは answer/step28/main.go になります。**
-
-現在、全件取っているだけでキャッシュする意味がないため、キーで取得できるようにまずは修正します。
-
-`main.go` の firestoreHandler の MethodGet を修正していきます。以下の内容に修正してください。
-
-```go
-	// 取得処理
-	case http.MethodGet:
-		id := strings.TrimPrefix(r.URL.Path, "/firestore/")
-		log.Printf("id=%v", id)
-		if id == "/firestore" || id == "" {
-			iter := client.Collection("users").Documents(ctx)
-			var u []Users
-
-			for {
-				doc, err := iter.Next()
-				if err == iterator.Done {
-					break
-				}
-				if err != nil {
-					log.Fatal(err)
-				}
-				var user Users
-				err = doc.DataTo(&user)
-				if err != nil {
-					log.Fatal(err)
-				}
-				user.Id = doc.Ref.ID
-				log.Print(user)
-				u = append(u, user)
-			}
-			if len(u) == 0 {
-				w.WriteHeader(http.StatusNoContent)
-			} else {
-				json, err := json.Marshal(u)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				w.Write(json)
-			}
-		} else {
-			// (Step 29) 置き換えここから
-			doc, err := client.Collection("users").Doc(id).Get(ctx)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			var u Users
-			err = doc.DataTo(&u)
-			if err != nil {
-				log.Fatal(err)
-			}
-			u.Id = doc.Ref.ID
-			json, err := json.Marshal(u)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			w.Write(json)
-			// (Step 29) 置き換えここまで
-		}
-```
-
-これでまずは単一のユーザーデータを取得できるようになりました。
-
-
-<!-- Step 29 -->
-## Firestore ハンドラの修正
-次に Redis 操作のためのコードを追加します。
-
-**このステップで作成したコードは answer/step29/main.go になります。**
-
-import に以下を追記してください。
-
-```go
-"github.com/gomodule/redigo/redis"
-```
-
-main 関数の最初の処理として以下を追記してください。
-
-```go
-	// Redis
-	initRedis()
-```
-
-`main.go` 末尾に以下を追記してください。
-
-```go
-var pool *redis.Pool
-
-func initRedis() {
-	var (
-		host = os.Getenv("REDIS_HOST")
-		port = os.Getenv("REDIS_PORT")
-		addr = fmt.Sprintf("%s:%s", host, port)
-	)
-	pool = redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", addr)
-	}, 10)
-}
-```
-
-Firestore クライアント作成のブロックと switch 文の間に以下を追記してください。
-
-```go
-			conn := pool.Get()
-			defer conn.Close()
-```
-
-先程の単一ユーザーデータを取得するコードに対して、キャッシュを取得・セットするコードを追加します。
-取得処理にあるコメントの `(Step 29) 置き換えここから` から `(Step 29) 置き換えここまで` の部分を以下のコードに置き換えましょう。
-
-```go
-			// (Step 29) 置き換えここから
-			// Redis クライアント作成
-			cache, err := redis.String(conn.Do("GET", id))
-			if err != nil {
-				log.Println(err)
-			}
-			log.Printf("cache : %v", cache)
-
-			if cache != "" {
-				json, err := json.Marshal(cache)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				w.Write(json)
-				log.Printf("find cache")
-			} else {
-				doc, err := client.Collection("users").Doc(id).Get(ctx)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				var u Users
-				err = doc.DataTo(&u)
-				if err != nil {
-					log.Fatal(err)
-				}
-				u.Id = doc.Ref.ID
-				json, err := json.Marshal(u)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				conn.Do("SET", id, string(json))
-				w.Write(json)
-			}
-			// (Step 29) 置き換えここまで
-```
-
-<!-- Step 30 -->
-## Cloud Run のデプロイ オプションの更新
-
-Serverless VPC Access は Cloud Run デプロイ時に `--vpc-connector` を指定することで接続設定ができます。
-また、環境変数で Memorystore for Redis への接続情報を Cloud Run のコンテナに持たせることができます。
-
-### Redis インスタンスの IP アドレスの確認
-
-以下のコマンドを実行して Redis インスタンスの IP アドレスを取得します。
-
-```bash
-gcloud redis instances list --format=json  --region=us-central1 | jq '.[0].host'
-```
-
-### cloudbuild.yaml の更新
-
-cloudbuild.yaml を以下のように更新します。
-**REDIS_HOST** の `XXX.XXX.XXX.XXX` には先程作成した REDIS_HOST の IP アドレスを指定してください。
-
-```
-steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID', '.']
-
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID']
-
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: [
-    'run',
-    'deploy',
-    '--image=gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID',
-    '--vpc-connector=egg-vpc-connector',
-    '--service-account=dev-egg-sa@$PROJECT_ID.iam.gserviceaccount.com',
-    '--platform=managed',
-    '--region=us-central1',
-    '--allow-unauthenticated',
-    '--set-env-vars',
-    'GOOGLE_CLOUD_PROJECT=$PROJECT_ID',
-    '--set-env-vars',
-    'REDIS_HOST=XXX.XXX.XXX.XXX',
-    '--set-env-vars',
-    'REDIS_PORT=6379',
-    'egg1-app',
-  ]
-```
-
-
-<!-- Step 31 -->
-## デプロイと確認 (キャッシュ機能の追加)
-
-### Cloud Run へのデプロイ
-
-Cloud Build を実行し、アプリケーションを Cloud Run にデプロイしてみましょう。
-
-```bash
-gcloud builds submit --config cloudbuild.yaml .
-```
-
-### URL の表示
-
-以下のコマンドで URL を表示します。
-
-```bash
-echo $URL
-```
-
-Firestore エンドポイントに登録されているデータの ID で 2 回アクセスして、レスポンスの時間が短くなっている（キャッシュが効いている）事を確認します。
-
-```bash
-curl ${URL}/firestore/<ID>
-```
-
-### コンテナのログを確認
-**GUI**: [Cloud Run ログ](https://console.cloud.google.com/run/detail/us-central1/egg1-app/logs?project={{project-id}})
-
-アクセスログから 2 回目のアクセスの処理時間が短くなっていることを確認します。
-
-<walkthrough-footnote>ハンズオンの内容は以上になります。お疲れさまでした。</walkthrough-footnote>
-
+<walkthrough-footnote>Firestore についての実装は以上になります。</walkthrough-footnote>
 
 <!-- Step 32 -->
 ## チャレンジ問題: Cloud Run の新リビジョンの段階的なデプロイ
@@ -1324,29 +1035,6 @@ gcloud run services delete egg1-app --platform managed --region=us-central1
 ### Firestore データの削除
 
 Firestore コンソールから、ルートコレクションを削除してください。今回のハンズオンで作成したすべての user データが削除されます。
-
-### Cloud Memorystore の削除
-
-```bash
-gcloud redis instances delete eggcache --region=us-central1
-```
-
-### Serverless VPC Access コネクタの削除
-
-```bash
-gcloud compute networks vpc-access connectors delete egg-vpc-connector --region us-central1
-```
-
-
-### VPC の削除
-
-```bash
-gcloud compute networks subnets delete us-subnet --region=us-central1
-```
-
-```bash
-gcloud compute networks delete eggvpc
-```
 
 ### Container Registry に登録したコンテナイメージの削除
 
