@@ -1,4 +1,4 @@
-module github.com/mouradelazhari/gcp-getting-started-lab-jp/gaming/newgrad
+module github.com/mouradelazhari/gcp-getting-started-lab-jp/webapp/newgrad
 
 go 1.13
 
