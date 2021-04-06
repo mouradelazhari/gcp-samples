@@ -16,11 +16,11 @@ RUN go mod download
 
 # Copy all files and build an executable
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o egg1_app
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -o CA_app
 
 # Use a Docker multi-stage build to create a lean production image
 FROM alpine:3.12.0
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /app/egg1_app ./
+COPY --from=builder /app/CA_app ./
 EXPOSE 8080
-ENTRYPOINT ["/egg1_app"]
+ENTRYPOINT ["/CA_app"]
