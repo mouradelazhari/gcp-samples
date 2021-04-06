@@ -254,7 +254,7 @@ gcloud config set compute/region us-central1
 - 作業用のディレクトリへ移動
 
 ```bash
-cd ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/newgrad
+cd ~/cloudshell_open/gcp-getting-started-lab-jp/webapp/newgrad
 ```
 
 - シークレットキーの参照先を設定
@@ -560,7 +560,7 @@ Go 言語の場合、 `go.mod` で Go パッケージの依存関係を設定で
 今回のハンズオンで使う依存関係を全て書いた `go.mod` ファイルは既に `newgrad` フォルダに配置済みです。
 
 ```
-module github.com/mouradelazhari/gcp-getting-started-lab-jp/gaming/newgrad
+module github.com/mouradelazhari/gcp-getting-started-lab-jp/webapp/newgrad
 
 go 1.13
 
@@ -948,7 +948,7 @@ gcloud source repos create CA-handson
 Cloud Build に前の手順で作成した、プライベート Git リポジトリに push が行われたときに起動されるトリガーを作成します。
 
 ```bash
-gcloud beta builds triggers create cloud-source-repositories --description="CA-handson" --repo=CA-handson --branch-pattern=".*" --build-config="gaming/newgrad/cloudbuild.yaml"
+gcloud beta builds triggers create cloud-source-repositories --description="CA-handson" --repo=CA-handson --branch-pattern=".*" --build-config="webapp/newgrad/cloudbuild.yaml"
 ```
 
 **GUI**: [ビルドトリガー](https://console.cloud.google.com/cloud-build/triggers?project={{project-id}})
@@ -1047,7 +1047,7 @@ Container Registry コンソールから、イメージを選択して削除し�
 ### Owner 権限をつけた dev-key.json の削除
 
 ```bash
-rm ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/newgrad/dev-key.json
+rm ~/cloudshell_open/gcp-getting-started-lab-jp/webapp/newgrad/dev-key.json
 ```
 
 ### サービスアカウントに付与したロールの取り消し
