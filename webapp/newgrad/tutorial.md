@@ -887,7 +887,7 @@ Container Registry コンソールから、イメージを選択して削除し�
 
 ### Cloud Source Repositories に作成したリポジトリの削除
 
-[CSR の設定画面](https://source.cloud.google.com/admin/settings?projectId={{project-id}}&repository=CA-handson) にアクセスし、「このリポジトリを削除」を実行
+[CSR の設定画面](https://source.cloud.google.com/admin/settings?projectId={{project-id}}&repository=ca-handson) にアクセスし、「このリポジトリを削除」を実行
 
 ### Owner 権限をつけた dev-key.json の削除
 
