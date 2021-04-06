@@ -1,4 +1,4 @@
-# E.G.G ハンズオン #1
+# Google Cloud ハンズオン #1
 
 ## Google Cloud Platform（GCP）プロジェクトの選択
 
@@ -58,7 +58,7 @@
     - Cloud Firestore の削除
     - Container Registry に登録したコンテナイメージの削除
     - Owner 権限をつけた dev-key.json の削除
-    - サービスアカウント dev-egg-sa の削除
+    - サービスアカウント dev-sa の削除
 
 
 <!-- Step 3 -->
@@ -164,19 +164,19 @@ gcloud services enable \
 ローカルの開発で使用するサービスアカウントを作成します。
 
 ```bash
-gcloud iam service-accounts create dev-egg-sa
+gcloud iam service-accounts create dev-sa
 ```
 
 作成したサービスアカウントに権限を付与します。 **今回のハンズオンはオーナー権限を付与していますが、実際の開発の現場では適切な権限を付与しましょう！**
 
 ```bash
-gcloud projects add-iam-policy-binding {{project-id}} --member "serviceAccount:dev-egg-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
+gcloud projects add-iam-policy-binding {{project-id}} --member "serviceAccount:dev-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
 ```
 
 キーファイルを生成します。
 
 ```bash
-gcloud iam service-accounts keys create dev-key.json --iam-account dev-egg-sa@{{project-id}}.iam.gserviceaccount.com
+gcloud iam service-accounts keys create dev-key.json --iam-account dev-sa@{{project-id}}.iam.gserviceaccount.com
 ```
 
 **GUI**: [サービスアカウント](https://console.cloud.google.com/iam-admin/serviceaccounts?project={{project-id}})
@@ -254,7 +254,7 @@ gcloud config set compute/region us-central1
 - 作業用のディレクトリへ移動
 
 ```bash
-cd ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/egg2-1
+cd ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/newgrad
 ```
 
 - シークレットキーの参照先を設定
@@ -425,7 +425,7 @@ Cloud Run の名前は egg1-app にしています。
 
 ```bash
 gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1 \
-  --service-account="dev-egg-sa@{{project-id}}.iam.gserviceaccount.com" \
+  --service-account="dev-sa@{{project-id}}.iam.gserviceaccount.com" \
   --platform=managed \
   --region=us-central1 \
   --allow-unauthenticated \
@@ -490,7 +490,7 @@ gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT  --member serviceAc
 
 ### cloudbuild.yaml の確認
 
-Cloud Build のジョブの中身は `egg2-1` フォルダ下にある `cloudbuild.yaml` に定義されているので中身を確認してみましょう。
+Cloud Build のジョブの中身は `newgrad` フォルダ下にある `cloudbuild.yaml` に定義されているので中身を確認してみましょう。
 
 ```
 steps:
@@ -505,7 +505,7 @@ steps:
     'run',
     'deploy',
     '--image=gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID',
-    '--service-account=dev-egg-sa@$PROJECT_ID.iam.gserviceaccount.com',
+    '--service-account=dev-sa@$PROJECT_ID.iam.gserviceaccount.com',
     '--platform=managed',
     '--region=us-central1',
     '--allow-unauthenticated',
@@ -557,10 +557,10 @@ Cloud Run のコンテナの Image URL が Cloud Build で作成されたイメ�
 Firestore にアクセスするためにクライアントライブラリを追加します。
 Go 言語の場合、 `go.mod` で Go パッケージの依存関係を設定できます。
 
-今回のハンズオンで使う依存関係を全て書いた `go.mod` ファイルは既に `egg2-1` フォルダに配置済みです。
+今回のハンズオンで使う依存関係を全て書いた `go.mod` ファイルは既に `newgrad` フォルダに配置済みです。
 
 ```
-module github.com/GoogleCloudPlatform/gcp-getting-started-lab-jp/gaming/egg2-1
+module github.com/GoogleCloudPlatform/gcp-getting-started-lab-jp/gaming/newgrad
 
 go 1.13
 
@@ -876,7 +876,7 @@ steps:
     '--no-traffic',
     '--image=gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID',
     '--vpc-connector=egg-vpc-connector',
-    '--service-account=dev-egg-sa@$PROJECT_ID.iam.gserviceaccount.com',
+    '--service-account=dev-sa@$PROJECT_ID.iam.gserviceaccount.com',
     '--platform=managed',
     '--region=us-central1',
     '--allow-unauthenticated',
@@ -948,7 +948,7 @@ gcloud source repos create egg1-handson
 Cloud Build に前の手順で作成した、プライベート Git リポジトリに push が行われたときに起動されるトリガーを作成します。
 
 ```bash
-gcloud beta builds triggers create cloud-source-repositories --description="egg1handson" --repo=egg1-handson --branch-pattern=".*" --build-config="gaming/egg2-1/cloudbuild.yaml"
+gcloud beta builds triggers create cloud-source-repositories --description="egg1handson" --repo=egg1-handson --branch-pattern=".*" --build-config="gaming/newgrad/cloudbuild.yaml"
 ```
 
 **GUI**: [ビルドトリガー](https://console.cloud.google.com/cloud-build/triggers?project={{project-id}})
@@ -1047,17 +1047,17 @@ Container Registry コンソールから、イメージを選択して削除し�
 ### Owner 権限をつけた dev-key.json の削除
 
 ```bash
-rm ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/egg2-1/dev-key.json
+rm ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/newgrad/dev-key.json
 ```
 
 ### サービスアカウントに付与したロールの取り消し
 
 ```bash
-gcloud projects remove-iam-policy-binding {{project-id}} --member "serviceAccount:dev-egg-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
+gcloud projects remove-iam-policy-binding {{project-id}} --member "serviceAccount:dev-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
 ```
 
 ### サービスアカウントの削除
 
 ```bash
-gcloud iam service-accounts delete dev-egg-sa@{{project-id}}.iam.gserviceaccount.com
+gcloud iam service-accounts delete dev-sa@{{project-id}}.iam.gserviceaccount.com
 ```
