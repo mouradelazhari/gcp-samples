@@ -1,4 +1,4 @@
-module github.com/GoogleCloudPlatform/gcp-getting-started-lab-jp/gaming/egg2-1
+module github.com/mouradelazhari/gcp-getting-started-lab-jp/gaming/newgrad
 
 go 1.13
 

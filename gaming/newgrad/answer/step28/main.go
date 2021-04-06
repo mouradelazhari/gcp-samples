@@ -36,7 +36,7 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, Egg!")
+	fmt.Fprint(w, "Hello, CA!")
 }
 
 func firestoreHandler(w http.ResponseWriter, r *http.Request) {
