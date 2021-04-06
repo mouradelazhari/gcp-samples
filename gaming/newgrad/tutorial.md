@@ -1,4 +1,4 @@
-# E.G.G ハンズオン #1
+# Google Cloud ハンズオン #1
 
 ## Google Cloud Platform（GCP）プロジェクトの選択
 
@@ -16,7 +16,7 @@
 
 ### **内容と目的**
 
-本ハンズオンでは、Cloud Run を触ったことない方向けに、テスト アプリケーションを作成し、Cloud Firestore と Cloud Memorystore に接続してクエリをする方法などを学びます。
+本ハンズオンでは、Cloud Run を触ったことない方向けに、テスト アプリケーションを作成し、Cloud Firestore に接続してクエリをする方法などを学びます。
 本ハンズオンを通じて、 Cloud Run を使ったアプリケーション開発のイメージを掴んでもらうことが目的です。
 
 
@@ -32,8 +32,6 @@
 
 - Cloud Run
 - Cloud Firestore
-- Cloud Memorystore
-- Serverless VPC access
 
 
 <!-- Step 2 -->
@@ -47,26 +45,20 @@
   - gcloud コマンドラインツール設定
   - GCP 機能（API）有効化設定
 
-- [Cloud Run](https://cloud.google.com/run) を用いたアプリケーション開発：60 分
+- [Cloud Run](https://cloud.google.com/run) を用いたアプリケーション開発：40 分
   - サンプル アプリケーションのコンテナ化
   - コンテナの [Google Container Registry](https://cloud.google.com/container-registry/) への登録
   - Cloud Run のデプロイ
   - Cloud Firestore の利用
-  - サーバーレス VPC アクセスの設定
-  - Cloud Memorystore for Redis の利用
-  - チャレンジ問題
 
 - クリーンアップ：10 分
   - プロジェクトごと削除
   - （オプション）個別リソースの削除
     - Cloud Run の削除
     - Cloud Firestore の削除
-    - Cloud Memorystore の削除
-    - Serverless VPC Access コネクタの削除
-    - VPC Subnet と VPC の削除
     - Container Registry に登録したコンテナイメージの削除
     - Owner 権限をつけた dev-key.json の削除
-    - サービスアカウント dev-egg-sa の削除
+    - サービスアカウント dev-sa の削除
 
 
 <!-- Step 3 -->
@@ -153,16 +145,12 @@ GCP では利用したい機能ごとに、有効化を行う必要がありま�
 - Cloud Build API
 - Google Container Registry API
 - Google Cloud Firestore API
-- Google Cloud Memorystore for Redis API
-- Serverless VPC Access API
 
 ```bash
 gcloud services enable \
   cloudbuild.googleapis.com \
   containerregistry.googleapis.com \
   run.googleapis.com \
-  redis.googleapis.com \
-  vpcaccess.googleapis.com \
   servicenetworking.googleapis.com
 ```
 
@@ -176,19 +164,19 @@ gcloud services enable \
 ローカルの開発で使用するサービスアカウントを作成します。
 
 ```bash
-gcloud iam service-accounts create dev-egg-sa
+gcloud iam service-accounts create dev-sa
 ```
 
 作成したサービスアカウントに権限を付与します。 **今回のハンズオンはオーナー権限を付与していますが、実際の開発の現場では適切な権限を付与しましょう！**
 
 ```bash
-gcloud projects add-iam-policy-binding {{project-id}} --member "serviceAccount:dev-egg-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
+gcloud projects add-iam-policy-binding {{project-id}} --member "serviceAccount:dev-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
 ```
 
 キーファイルを生成します。
 
 ```bash
-gcloud iam service-accounts keys create dev-key.json --iam-account dev-egg-sa@{{project-id}}.iam.gserviceaccount.com
+gcloud iam service-accounts keys create dev-key.json --iam-account dev-sa@{{project-id}}.iam.gserviceaccount.com
 ```
 
 **GUI**: [サービスアカウント](https://console.cloud.google.com/iam-admin/serviceaccounts?project={{project-id}})
@@ -227,7 +215,7 @@ GCP コンソールの [Datastore](https://console.cloud.google.com/datastore/en
 <!-- Step 9 -->
 ## Cloud Run を用いたアプリケーション開発
 
-<walkthrough-tutorial-duration duration=60></walkthrough-tutorial-duration>
+<walkthrough-tutorial-duration duration=40></walkthrough-tutorial-duration>
 
 Cloud Run を利用したアプリケーション開発を体験します。
 
@@ -236,9 +224,6 @@ Cloud Run を利用したアプリケーション開発を体験します。
   - コンテナの [Google Container Registry](https://cloud.google.com/container-registry/) への登録
   - Cloud Run のデプロイ
   - Cloud Firestore の利用
-  - サーバーレス VPC アクセスの設定
-  - Cloud Memorystore for Redis の利用
-  - チャレンジ問題
 
 
 <!-- Step 10 -->
@@ -269,7 +254,7 @@ gcloud config set compute/region us-central1
 - 作業用のディレクトリへ移動
 
 ```bash
-cd ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/egg2-1
+cd ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/newgrad
 ```
 
 - シークレットキーの参照先を設定
@@ -285,7 +270,7 @@ export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/dev-key.json
 - Cloud Run の URL の取得
 
 ```bash
-URL=$(gcloud run services describe --format=json --region=us-central1 --platform=managed egg1-app | jq .status.url -r)
+URL=$(gcloud run services describe --format=json --region=us-central1 --platform=managed ca-app | jq .status.url -r)
 echo ${URL}
 ```
 
@@ -306,7 +291,7 @@ Cloud Shell が遅い、固まってしまう、という場合はブースト�
 ハンズオン用のサンプル Web アプリケーションとして　Go 言語で API サーバーを作成していきます。
 
 まずはカレント ディレクトリにある main.go を確認してください。
-単純な HTTP リクエストに対して `Hello, EGG!` を返す Go のコードになります。
+単純な HTTP リクエストに対して `Hello, CA!` を返す Go のコードになります。
 
 
 ```go:main.go
@@ -335,7 +320,7 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, Egg!")
+	fmt.Fprint(w, "Hello, CA!")
 }
 ```
 
@@ -360,7 +345,7 @@ go run main.go
 画面右上にあるアイコン <walkthrough-web-preview-icon></walkthrough-web-preview-icon> をクリックし、"プレビューのポート: 8080"を選択します。
 これによりブラウザで新しいタブが開き、Cloud Shell 上で起動しているコンテナにアクセスできます。
 
-正しくアプリケーションにアクセスできると、 **Hello, EGG!** と表示されます。
+正しくアプリケーションにアクセスできると、 **Hello, CA!** と表示されます。
 
 確認が終わったら、Cloud Shell 上で Ctrl+c を入力して実行中のアプリケーションを停止します。
 
@@ -376,7 +361,7 @@ Go 言語で作成されたサンプル Web アプリケーションをコンテ
 ここで作成したコンテナは Cloud Shell インスタンスのローカルに保存されます。
 
 ```bash
-docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1 .
+docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1 .
 ```
 
 **ヒント**: `docker build` コマンドを叩くと、Dockerfile が読み込まれ、そこに記載されている手順通りにコンテナが作成されます。
@@ -387,10 +372,10 @@ docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1 .
 
 ```bash
 docker run -p 8080:8080 \
---name egg1-app \
+--name CA-app \
 -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/auth.json \
 -v $PWD/auth.json:/tmp/keys/auth.json:ro \
-gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1
+gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1
 ```
 
 **ヒント**: Cloud Shell 環境の 8080 ポートを、コンテナの 8080 ポートに紐付け、フォアグラウンドで起動しています。
@@ -406,7 +391,7 @@ gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1
 画面右上にあるアイコン <walkthrough-web-preview-icon></walkthrough-web-preview-icon> をクリックし、"プレビューのポート: 8080"を選択します。
 これによりブラウザで新しいタブが開き、Cloud Shell 上で起動しているコンテナにアクセスできます。
 
-正しくアプリケーションにアクセスできると、先程と同じように `Hello EGG!` と表示されます。
+正しくアプリケーションにアクセスできると、先程と同じように `Hello CA!` と表示されます。
 
 確認が終わったら、Cloud Shell 上で Ctrl+c を入力して実行中のコンテナを停止します。
 
@@ -423,7 +408,7 @@ gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1
 ### 作成したコンテナをコンテナレジストリ（Google Container Registry）へ登録（プッシュ）する
 
 ```bash
-docker push gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1
+docker push gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1
 ```
 
 **GUI**: [コンテナレジストリ](https://console.cloud.google.com/gcr/images/{{project-id}}?project={{project-id}})
@@ -436,15 +421,15 @@ docker push gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1
 
 ### gcloud コマンドで Cloud Run の Service を作成し、コンテナをデプロイします
 
-Cloud Run の名前は egg1-app にしています。
+Cloud Run の名前は CA-app にしています。
 
 ```bash
-gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1 \
-  --service-account="dev-egg-sa@{{project-id}}.iam.gserviceaccount.com" \
+gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1 \
+  --service-account="dev-sa@{{project-id}}.iam.gserviceaccount.com" \
   --platform=managed \
   --region=us-central1 \
   --allow-unauthenticated \
-  egg1-app
+  CA-app
 ```
 
 **参考**: デプロイが完了するまで、1〜2分程度かかります。
@@ -453,20 +438,20 @@ gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/egg1-app:v1 \
 
 ### Cloud Run の Service の URLを取得します
 ```bash
-URL=$(gcloud run services describe --format=json --region=us-central1 --platform=managed egg1-app | jq .status.url -r)
+URL=$(gcloud run services describe --format=json --region=us-central1 --platform=managed CA-app | jq .status.url -r)
 echo ${URL}
 ```
 
 ブラウザから取得した URL を開いてアプリケーションの動作を確認します。
 
-**GUI**: [Cloud Run サービス情報](https://console.cloud.google.com/run/detail/us-central1/egg1-app/general?project={{project-id}})
+**GUI**: [Cloud Run サービス情報](https://console.cloud.google.com/run/detail/us-central1/CA-app/general?project={{project-id}})
 
 
 <!-- Step 17 -->
 ## Cloud Runのログを確認します
 
 ### コンテナのログを確認
-**GUI**: [Cloud Run ログ](https://console.cloud.google.com/run/detail/us-central1/egg1-app/logs?project={{project-id}})
+**GUI**: [Cloud Run ログ](https://console.cloud.google.com/run/detail/us-central1/CA-app/logs?project={{project-id}})
 
 アクセスログを確認します。
 
@@ -505,32 +490,32 @@ gcloud projects add-iam-policy-binding $GOOGLE_CLOUD_PROJECT  --member serviceAc
 
 ### cloudbuild.yaml の確認
 
-Cloud Build のジョブの中身は `egg2-1` フォルダ下にある `cloudbuild.yaml` に定義されているので中身を確認してみましょう。
+Cloud Build のジョブの中身は `newgrad` フォルダ下にある `cloudbuild.yaml` に定義されているので中身を確認してみましょう。
 
 ```
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID', '.']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID']
+  args: ['push', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: [
     'run',
     'deploy',
-    '--image=gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID',
-    '--service-account=dev-egg-sa@$PROJECT_ID.iam.gserviceaccount.com',
+    '--image=gcr.io/$PROJECT_ID/CA-app:$BUILD_ID',
+    '--service-account=dev-sa@$PROJECT_ID.iam.gserviceaccount.com',
     '--platform=managed',
     '--region=us-central1',
     '--allow-unauthenticated',
     '--set-env-vars',
     'GOOGLE_CLOUD_PROJECT=$PROJECT_ID',
-    'egg1-app',
+    'CA-app',
   ]
 ```
 
-docker build コマンドでコンテナをビルドした際は、コンテナのタグを `gcr.io/{{project-id}}/egg1-app:v1` としていましたが、Cloud Build では `gcr.io/{{project-id}}/egg1-app:$BUILD_ID` としている事が分かります。$BUILD_ID には Cloud Build のジョブの ID が入ります。
+docker build コマンドでコンテナをビルドした際は、コンテナのタグを `gcr.io/{{project-id}}/CA-app:v1` としていましたが、Cloud Build では `gcr.io/{{project-id}}/CA-app:$BUILD_ID` としている事が分かります。$BUILD_ID には Cloud Build のジョブの ID が入ります。
 
 <walkthrough-footnote>それでは　Cloud Build のジョブを実行してみましょう。</walkthrough-footnote>
 
@@ -556,7 +541,7 @@ gcloud builds submit --config cloudbuild.yaml .
 
 Cloud Run のコンテナの Image URL が Cloud Build で作成されたイメージになっていることを確認します。
 
-**GUI**: [Cloud Run リビジョン](https://console.cloud.google.com/run/detail/us-central1/egg1-app/revisions?project={{project-id}})
+**GUI**: [Cloud Run リビジョン](https://console.cloud.google.com/run/detail/us-central1/CA-app/revisions?project={{project-id}})
 
 
 <walkthrough-footnote>Cloud Build による自動ビルド・デプロイの設定が完了しました。次は Firestore の実装に入ります。</walkthrough-footnote>
@@ -572,10 +557,10 @@ Cloud Run のコンテナの Image URL が Cloud Build で作成されたイメ�
 Firestore にアクセスするためにクライアントライブラリを追加します。
 Go 言語の場合、 `go.mod` で Go パッケージの依存関係を設定できます。
 
-今回のハンズオンで使う依存関係を全て書いた `go.mod` ファイルは既に `egg2-1` フォルダに配置済みです。
+今回のハンズオンで使う依存関係を全て書いた `go.mod` ファイルは既に `newgrad` フォルダに配置済みです。
 
 ```
-module github.com/GoogleCloudPlatform/gcp-getting-started-lab-jp/gaming/egg2-1
+module github.com/mouradelazhari/gcp-getting-started-lab-jp/gaming/newgrad
 
 go 1.13
 
@@ -853,7 +838,7 @@ Cloud Shell から Cloud Run の Service の URL に対して、以下のよう�
 ![firestore-id](https://storage.googleapis.com/egg-resources/egg1/public/firestore-id.jpg)
 
 ```
-curl -X PUT -d '{"id": "<ID>", "email":"egg@example.com", "name":"Egg Taro"}' ${URL}/firestore
+curl -X PUT -d '{"id": "<ID>", "email":"cloud@example.com", "name":"Cloud Taro"}' ${URL}/firestore
 ```
 
 **削除**
@@ -864,286 +849,12 @@ curl -X PUT -d '{"id": "<ID>", "email":"egg@example.com", "name":"Egg Taro"}' ${
 curl -X DELETE ${URL}/firestore/<ID>
 ```
 
-<walkthrough-footnote>Firestore についての実装は以上になります。次に Memorystore を操作できるようにしていきます。</walkthrough-footnote>
-
-
-<!-- Step 26 -->
-## Serverless VPC Access のコネクタを作成する
-
-ここからは Memorystore を Cloud Run と連携させていきます。
-まずは VPC ネットワークを作成します。
-
-```bash
-gcloud compute networks create eggvpc --subnet-mode=custom
-```
-
-```bash
-gcloud compute networks subnets create us-subnet --network=eggvpc --region=us-central1 --range=10.128.0.0/20
-```
-
-```bash
-gcloud compute networks vpc-access connectors create egg-vpc-connector \
---network eggvpc \
---region us-central1 \
---range 10.129.0.0/28
-```
-
-
-<!-- Step 27 -->
-## Memorystore for Redis を使う
-
-Memorystore for Redis を使ってデータのキャッシュをしてみましょう。
-Firestore のデータをキャッシュから返せるように修正していきます。
-
-### Redis インスタンスを作成する
-
-```bash
-gcloud redis instances create --network=eggvpc --region=us-central1 eggcache
-```
-
-
-<!-- Step 28 -->
-## Firestore ハンドラの修正
-
-**このステップで作成したコードは answer/step28/main.go になります。**
-
-現在、全件取っているだけでキャッシュする意味がないため、キーで取得できるようにまずは修正します。
-
-`main.go` の firestoreHandler の MethodGet を修正していきます。以下の内容に修正してください。
-
-```go
-	// 取得処理
-	case http.MethodGet:
-		id := strings.TrimPrefix(r.URL.Path, "/firestore/")
-		log.Printf("id=%v", id)
-		if id == "/firestore" || id == "" {
-			iter := client.Collection("users").Documents(ctx)
-			var u []Users
-
-			for {
-				doc, err := iter.Next()
-				if err == iterator.Done {
-					break
-				}
-				if err != nil {
-					log.Fatal(err)
-				}
-				var user Users
-				err = doc.DataTo(&user)
-				if err != nil {
-					log.Fatal(err)
-				}
-				user.Id = doc.Ref.ID
-				log.Print(user)
-				u = append(u, user)
-			}
-			if len(u) == 0 {
-				w.WriteHeader(http.StatusNoContent)
-			} else {
-				json, err := json.Marshal(u)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				w.Write(json)
-			}
-		} else {
-			// (Step 29) 置き換えここから
-			doc, err := client.Collection("users").Doc(id).Get(ctx)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			var u Users
-			err = doc.DataTo(&u)
-			if err != nil {
-				log.Fatal(err)
-			}
-			u.Id = doc.Ref.ID
-			json, err := json.Marshal(u)
-			if err != nil {
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-			w.Write(json)
-			// (Step 29) 置き換えここまで
-		}
-```
-
-これでまずは単一のユーザーデータを取得できるようになりました。
-
-
-<!-- Step 29 -->
-## Firestore ハンドラの修正
-次に Redis 操作のためのコードを追加します。
-
-**このステップで作成したコードは answer/step29/main.go になります。**
-
-import に以下を追記してください。
-
-```go
-"github.com/gomodule/redigo/redis"
-```
-
-main 関数の最初の処理として以下を追記してください。
-
-```go
-	// Redis
-	initRedis()
-```
-
-`main.go` 末尾に以下を追記してください。
-
-```go
-var pool *redis.Pool
-
-func initRedis() {
-	var (
-		host = os.Getenv("REDIS_HOST")
-		port = os.Getenv("REDIS_PORT")
-		addr = fmt.Sprintf("%s:%s", host, port)
-	)
-	pool = redis.NewPool(func() (redis.Conn, error) {
-		return redis.Dial("tcp", addr)
-	}, 10)
-}
-```
-
-Firestore クライアント作成のブロックと switch 文の間に以下を追記してください。
-
-```go
-			conn := pool.Get()
-			defer conn.Close()
-```
-
-先程の単一ユーザーデータを取得するコードに対して、キャッシュを取得・セットするコードを追加します。
-取得処理にあるコメントの `(Step 29) 置き換えここから` から `(Step 29) 置き換えここまで` の部分を以下のコードに置き換えましょう。
-
-```go
-			// (Step 29) 置き換えここから
-			// Redis クライアント作成
-			cache, err := redis.String(conn.Do("GET", id))
-			if err != nil {
-				log.Println(err)
-			}
-			log.Printf("cache : %v", cache)
-
-			if cache != "" {
-				json, err := json.Marshal(cache)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				w.Write(json)
-				log.Printf("find cache")
-			} else {
-				doc, err := client.Collection("users").Doc(id).Get(ctx)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				var u Users
-				err = doc.DataTo(&u)
-				if err != nil {
-					log.Fatal(err)
-				}
-				u.Id = doc.Ref.ID
-				json, err := json.Marshal(u)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					return
-				}
-				conn.Do("SET", id, string(json))
-				w.Write(json)
-			}
-			// (Step 29) 置き換えここまで
-```
-
-<!-- Step 30 -->
-## Cloud Run のデプロイ オプションの更新
-
-Serverless VPC Access は Cloud Run デプロイ時に `--vpc-connector` を指定することで接続設定ができます。
-また、環境変数で Memorystore for Redis への接続情報を Cloud Run のコンテナに持たせることができます。
-
-### Redis インスタンスの IP アドレスの確認
-
-以下のコマンドを実行して Redis インスタンスの IP アドレスを取得します。
-
-```bash
-gcloud redis instances list --format=json  --region=us-central1 | jq '.[0].host'
-```
-
-### cloudbuild.yaml の更新
-
-cloudbuild.yaml を以下のように更新します。
-**REDIS_HOST** の `XXX.XXX.XXX.XXX` には先程作成した REDIS_HOST の IP アドレスを指定してください。
-
-```
-steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID', '.']
-
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID']
-
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: [
-    'run',
-    'deploy',
-    '--image=gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID',
-    '--vpc-connector=egg-vpc-connector',
-    '--service-account=dev-egg-sa@$PROJECT_ID.iam.gserviceaccount.com',
-    '--platform=managed',
-    '--region=us-central1',
-    '--allow-unauthenticated',
-    '--set-env-vars',
-    'GOOGLE_CLOUD_PROJECT=$PROJECT_ID',
-    '--set-env-vars',
-    'REDIS_HOST=XXX.XXX.XXX.XXX',
-    '--set-env-vars',
-    'REDIS_PORT=6379',
-    'egg1-app',
-  ]
-```
-
-
-<!-- Step 31 -->
-## デプロイと確認 (キャッシュ機能の追加)
-
-### Cloud Run へのデプロイ
-
-Cloud Build を実行し、アプリケーションを Cloud Run にデプロイしてみましょう。
-
-```bash
-gcloud builds submit --config cloudbuild.yaml .
-```
-
-### URL の表示
-
-以下のコマンドで URL を表示します。
-
-```bash
-echo $URL
-```
-
-Firestore エンドポイントに登録されているデータの ID で 2 回アクセスして、レスポンスの時間が短くなっている（キャッシュが効いている）事を確認します。
-
-```bash
-curl ${URL}/firestore/<ID>
-```
-
-### コンテナのログを確認
-**GUI**: [Cloud Run ログ](https://console.cloud.google.com/run/detail/us-central1/egg1-app/logs?project={{project-id}})
-
-アクセスログから 2 回目のアクセスの処理時間が短くなっていることを確認します。
-
-<walkthrough-footnote>ハンズオンの内容は以上になります。お疲れさまでした。</walkthrough-footnote>
-
+<walkthrough-footnote>Firestore についての実装は以上になります。</walkthrough-footnote>
 
 <!-- Step 32 -->
 ## チャレンジ問題: Cloud Run の新リビジョンの段階的なデプロイ
 
-Cloud Run には、リビジョン間でトラフィックを切り替える機能があり、A/B テストやカナリアデプロイを行なうことが可能です。main.go の `Hello, EGG!` の文言を任意の言葉に変更し、以下の手順でトラフィックの段階的な移行を試してみましょう。
+Cloud Run には、リビジョン間でトラフィックを切り替える機能があり、A/B テストやカナリアデプロイを行なうことが可能です。main.go の `Hello, CA!` の文言を任意の言葉に変更し、以下の手順でトラフィックの段階的な移行を試してみましょう。
 
 ### couldbuild.yaml の変更
 
@@ -1153,19 +864,19 @@ Cloud Run には、リビジョン間でトラフィックを切り替える機�
 ```
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID', '.']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID']
+  args: ['push', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: [
     'run',
     'deploy',
     '--no-traffic',
-    '--image=gcr.io/$PROJECT_ID/egg1-app:$BUILD_ID',
-    '--vpc-connector=egg-vpc-connector',
-    '--service-account=dev-egg-sa@$PROJECT_ID.iam.gserviceaccount.com',
+    '--image=gcr.io/$PROJECT_ID/CA-app:$BUILD_ID',
+    '--vpc-connector=CA-vpc-connector',
+    '--service-account=dev-sa@$PROJECT_ID.iam.gserviceaccount.com',
     '--platform=managed',
     '--region=us-central1',
     '--allow-unauthenticated',
@@ -1175,7 +886,7 @@ steps:
     'REDIS_HOST=XXX.XXX.XXX.XXX',
     '--set-env-vars',
     'REDIS_PORT=6379',
-    'egg1-app',
+    'CA-app',
   ]
 ```
 
@@ -1190,12 +901,12 @@ gcloud builds submit --config cloudbuild.yaml .
 以下のコマンドを実行します。
 
 ```bash
-gcloud run revisions list --platform=managed --region=us-central1 --service=egg1-app
+gcloud run revisions list --platform=managed --region=us-central1 --service=CA-app
 ```
 
 **--no-traffic** を指定しているため、まだ以前のリビジョンがトラフィックを処理しています。
 
-**GUI**: [Cloud Run 変更内容（リビジョン）](https://console.cloud.google.com/run/detail/us-central1/egg1-app/revisions?hl=ja&project={{project-id}})
+**GUI**: [Cloud Run 変更内容（リビジョン）](https://console.cloud.google.com/run/detail/us-central1/CA-app/revisions?hl=ja&project={{project-id}})
 
 
 ### Cloud Run のトラフィック切り替えの実行
@@ -1203,10 +914,10 @@ gcloud run revisions list --platform=managed --region=us-central1 --service=egg1
 以下のコマンドで全てのトラフィックを最新のリビジョンに切り替えます。
 
 ```bash
-gcloud run services update-traffic --to-latest --platform=managed --region=us-central1 egg1-app
+gcloud run services update-traffic --to-latest --platform=managed --region=us-central1 CA-app
 ```
 
-**GUI**: [Cloud Run 変更内容（リビジョン）](https://console.cloud.google.com/run/detail/us-central1/egg1-app/revisions?hl=ja&project={{project-id}})
+**GUI**: [Cloud Run 変更内容（リビジョン）](https://console.cloud.google.com/run/detail/us-central1/CA-app/revisions?hl=ja&project={{project-id}})
 
 
 ### アプリケーションの確認
@@ -1227,17 +938,17 @@ echo $URL
 今回利用しているソースコードを配置するためのプライベート Git リポジトリを、Cloud Source Repository（CSR）に作成します。
 
 ```bash
-gcloud source repos create egg1-handson
+gcloud source repos create CA-handson
 ```
 
-**GUI**: [Source Repository](https://source.cloud.google.com/{{project-id}}/egg1-handson): 作成前にアクセスすると拒否されます。
+**GUI**: [Source Repository](https://source.cloud.google.com/{{project-id}}/CA-handson): 作成前にアクセスすると拒否されます。
 
 ### Cloud Build トリガーを作成
 
 Cloud Build に前の手順で作成した、プライベート Git リポジトリに push が行われたときに起動されるトリガーを作成します。
 
 ```bash
-gcloud beta builds triggers create cloud-source-repositories --description="egg1handson" --repo=egg1-handson --branch-pattern=".*" --build-config="gaming/egg2-1/cloudbuild.yaml"
+gcloud beta builds triggers create cloud-source-repositories --description="CA-handson" --repo=CA-handson --branch-pattern=".*" --build-config="gaming/newgrad/cloudbuild.yaml"
 ```
 
 **GUI**: [ビルドトリガー](https://console.cloud.google.com/cloud-build/triggers?project={{project-id}})
@@ -1274,7 +985,7 @@ CSR を Git のリモートレポジトリとして登録します。
 これで git コマンドを使い Cloud Shell 上にあるファイル群を管理することができます。
 
 ```bash
-git remote add google https://source.developers.google.com/p/$GOOGLE_CLOUD_PROJECT/r/egg1-handson
+git remote add google https://source.developers.google.com/p/$GOOGLE_CLOUD_PROJECT/r/CA-handson
 ```
 
 ### CSR への資材の転送（プッシュ）
@@ -1286,7 +997,7 @@ git push コマンドを使い、CSR に資材を転送（プッシュ）しま�
 git push google master
 ```
 
-**GUI**: [Source Repository](https://source.cloud.google.com/{{project-id}}/egg1-handson) から資材がプッシュされたことを確認できます。
+**GUI**: [Source Repository](https://source.cloud.google.com/{{project-id}}/CA-handson) から資材がプッシュされたことを確認できます。
 
 
 ### Cloud Build の自動実行を確認
@@ -1318,35 +1029,12 @@ gcloud projects delete {{project-id}}
 ### Cloud Run の削除
 
 ```bash
-gcloud run services delete egg1-app --platform managed --region=us-central1
+gcloud run services delete CA-app --platform managed --region=us-central1
 ```
 
 ### Firestore データの削除
 
 Firestore コンソールから、ルートコレクションを削除してください。今回のハンズオンで作成したすべての user データが削除されます。
-
-### Cloud Memorystore の削除
-
-```bash
-gcloud redis instances delete eggcache --region=us-central1
-```
-
-### Serverless VPC Access コネクタの削除
-
-```bash
-gcloud compute networks vpc-access connectors delete egg-vpc-connector --region us-central1
-```
-
-
-### VPC の削除
-
-```bash
-gcloud compute networks subnets delete us-subnet --region=us-central1
-```
-
-```bash
-gcloud compute networks delete eggvpc
-```
 
 ### Container Registry に登録したコンテナイメージの削除
 
@@ -1354,22 +1042,22 @@ Container Registry コンソールから、イメージを選択して削除し�
 
 ### Cloud Source Repositories に作成したリポジトリの削除
 
-[CSR の設定画面](https://source.cloud.google.com/admin/settings?projectId={{project-id}}&repository=egg1-handson) にアクセスし、「このリポジトリを削除」を実行
+[CSR の設定画面](https://source.cloud.google.com/admin/settings?projectId={{project-id}}&repository=CA-handson) にアクセスし、「このリポジトリを削除」を実行
 
 ### Owner 権限をつけた dev-key.json の削除
 
 ```bash
-rm ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/egg2-1/dev-key.json
+rm ~/cloudshell_open/gcp-getting-started-lab-jp/gaming/newgrad/dev-key.json
 ```
 
 ### サービスアカウントに付与したロールの取り消し
 
 ```bash
-gcloud projects remove-iam-policy-binding {{project-id}} --member "serviceAccount:dev-egg-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
+gcloud projects remove-iam-policy-binding {{project-id}} --member "serviceAccount:dev-sa@{{project-id}}.iam.gserviceaccount.com" --role "roles/owner"
 ```
 
 ### サービスアカウントの削除
 
 ```bash
-gcloud iam service-accounts delete dev-egg-sa@{{project-id}}.iam.gserviceaccount.com
+gcloud iam service-accounts delete dev-sa@{{project-id}}.iam.gserviceaccount.com
 ```

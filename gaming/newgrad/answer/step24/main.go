@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -16,6 +17,7 @@ import (
 func main() {
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/firestore", firestoreHandler)
+	http.HandleFunc("/firestore/", firestoreHandler)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -30,7 +32,7 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, Egg!")
+	fmt.Fprint(w, "Hello, CA!")
 }
 
 func firestoreHandler(w http.ResponseWriter, r *http.Request) {
@@ -94,6 +96,33 @@ func firestoreHandler(w http.ResponseWriter, r *http.Request) {
 			}
 			w.Write(json)
 		}
+
+	// 更新処理
+	case http.MethodPut:
+		u, err := getUserBody(r)
+		if err != nil {
+			log.Fatal(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		_, err = client.Collection("users").Doc(u.Id).Set(ctx, u)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		fmt.Fprintln(w, "success updating")
+
+	// 削除処理
+	case http.MethodDelete:
+		id := strings.TrimPrefix(r.URL.Path, "/firestore/")
+		_, err := client.Collection("users").Doc(id).Delete(ctx)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprintln(w, "success deleting")
 
 	// それ以外のHTTPメソッド
 	default:

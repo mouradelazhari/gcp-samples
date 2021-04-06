@@ -11,10 +11,14 @@ import (
 	"strings"
 
 	"cloud.google.com/go/firestore"
+	"github.com/gomodule/redigo/redis"
 	"google.golang.org/api/iterator"
 )
 
 func main() {
+	// Redis
+	initRedis()
+
 	http.HandleFunc("/", indexHandler)
 	http.HandleFunc("/firestore", firestoreHandler)
 	http.HandleFunc("/firestore/", firestoreHandler)
@@ -32,7 +36,7 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, Egg!")
+	fmt.Fprint(w, "Hello, CA!")
 }
 
 func firestoreHandler(w http.ResponseWriter, r *http.Request) {
@@ -66,35 +70,59 @@ func firestoreHandler(w http.ResponseWriter, r *http.Request) {
 
 	// 取得処理
 	case http.MethodGet:
-		iter := client.Collection("users").Documents(ctx)
-		var u []Users
+		id := strings.TrimPrefix(r.URL.Path, "/firestore/")
+		log.Printf("id=%v", id)
+		if id == "/firestore" || id == "" {
+			iter := client.Collection("users").Documents(ctx)
+			var u []Users
 
-		for {
-			doc, err := iter.Next()
-			if err == iterator.Done {
-				break
+			for {
+				doc, err := iter.Next()
+				if err == iterator.Done {
+					break
+				}
+				if err != nil {
+					log.Fatal(err)
+				}
+				var user Users
+				err = doc.DataTo(&user)
+				if err != nil {
+					log.Fatal(err)
+				}
+				user.Id = doc.Ref.ID
+				log.Print(user)
+				u = append(u, user)
 			}
-			if err != nil {
-				log.Fatal(err)
+			if len(u) == 0 {
+				w.WriteHeader(http.StatusNoContent)
+			} else {
+				json, err := json.Marshal(u)
+				if err != nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				w.Write(json)
 			}
-			var user Users
-			err = doc.DataTo(&user)
-			if err != nil {
-				log.Fatal(err)
-			}
-			user.Id = doc.Ref.ID
-			log.Print(user)
-			u = append(u, user)
-		}
-		if len(u) == 0 {
-			w.WriteHeader(http.StatusNoContent)
 		} else {
+			// (Step 29) 置き換えここから
+			doc, err := client.Collection("users").Doc(id).Get(ctx)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+			var u Users
+			err = doc.DataTo(&u)
+			if err != nil {
+				log.Fatal(err)
+			}
+			u.Id = doc.Ref.ID
 			json, err := json.Marshal(u)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 			w.Write(json)
+			// (Step 29) 置き換えここまで
 		}
 
 	// 更新処理
@@ -156,4 +184,17 @@ func getUserBody(r *http.Request) (u Users, err error) {
 	}
 	log.Print(u)
 	return u, nil
+}
+
+var pool *redis.Pool
+
+func initRedis() {
+	var (
+		host = os.Getenv("REDIS_HOST")
+		port = os.Getenv("REDIS_PORT")
+		addr = fmt.Sprintf("%s:%s", host, port)
+	)
+	pool = redis.NewPool(func() (redis.Conn, error) {
+		return redis.Dial("tcp", addr)
+	}, 10)
 }
