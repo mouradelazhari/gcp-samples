@@ -361,7 +361,7 @@ Go 言語で作成されたサンプル Web アプリケーションをコンテ
 ここで作成したコンテナは Cloud Shell インスタンスのローカルに保存されます。
 
 ```bash
-docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1 .
+docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1 .
 ```
 
 **ヒント**: `docker build` コマンドを叩くと、Dockerfile が読み込まれ、そこに記載されている手順通りにコンテナが作成されます。
@@ -372,10 +372,10 @@ docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1 .
 
 ```bash
 docker run -p 8080:8080 \
---name CA-app \
+--name ca-app \
 -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/auth.json \
 -v $PWD/auth.json:/tmp/keys/auth.json:ro \
-gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1
+gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1
 ```
 
 **ヒント**: Cloud Shell 環境の 8080 ポートを、コンテナの 8080 ポートに紐付け、フォアグラウンドで起動しています。
@@ -408,7 +408,7 @@ gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1
 ### 作成したコンテナをコンテナレジストリ（Google Container Registry）へ登録（プッシュ）する
 
 ```bash
-docker push gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1
+docker push gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1
 ```
 
 **GUI**: [コンテナレジストリ](https://console.cloud.google.com/gcr/images/{{project-id}}?project={{project-id}})
@@ -421,15 +421,15 @@ docker push gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1
 
 ### gcloud コマンドで Cloud Run の Service を作成し、コンテナをデプロイします
 
-Cloud Run の名前は CA-app にしています。
+Cloud Run の名前は ca-app にしています。
 
 ```bash
-gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1 \
+gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1 \
   --service-account="dev-sa@{{project-id}}.iam.gserviceaccount.com" \
   --platform=managed \
   --region=us-central1 \
   --allow-unauthenticated \
-  CA-app
+  ca-app
 ```
 
 **参考**: デプロイが完了するまで、1〜2分程度かかります。
@@ -438,20 +438,20 @@ gcloud run deploy --image=gcr.io/$GOOGLE_CLOUD_PROJECT/CA-app:v1 \
 
 ### Cloud Run の Service の URLを取得します
 ```bash
-URL=$(gcloud run services describe --format=json --region=us-central1 --platform=managed CA-app | jq .status.url -r)
+URL=$(gcloud run services describe --format=json --region=us-central1 --platform=managed ca-app | jq .status.url -r)
 echo ${URL}
 ```
 
 ブラウザから取得した URL を開いてアプリケーションの動作を確認します。
 
-**GUI**: [Cloud Run サービス情報](https://console.cloud.google.com/run/detail/us-central1/CA-app/general?project={{project-id}})
+**GUI**: [Cloud Run サービス情報](https://console.cloud.google.com/run/detail/us-central1/ca-app/general?project={{project-id}})
 
 
 <!-- Step 17 -->
 ## Cloud Runのログを確認します
 
 ### コンテナのログを確認
-**GUI**: [Cloud Run ログ](https://console.cloud.google.com/run/detail/us-central1/CA-app/logs?project={{project-id}})
+**GUI**: [Cloud Run ログ](https://console.cloud.google.com/run/detail/us-central1/ca-app/logs?project={{project-id}})
 
 アクセスログを確認します。
 
@@ -495,27 +495,27 @@ Cloud Build のジョブの中身は `newgrad` フォルダ下にある `cloudbu
 ```
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID', '.']
+  args: ['build', '-t', 'gcr.io/$PROJECT_ID/ca-app:$BUILD_ID', '.']
 
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID']
+  args: ['push', 'gcr.io/$PROJECT_ID/ca-app:$BUILD_ID']
 
 - name: 'gcr.io/cloud-builders/gcloud'
   args: [
     'run',
     'deploy',
-    '--image=gcr.io/$PROJECT_ID/CA-app:$BUILD_ID',
+    '--image=gcr.io/$PROJECT_ID/ca-app:$BUILD_ID',
     '--service-account=dev-sa@$PROJECT_ID.iam.gserviceaccount.com',
     '--platform=managed',
     '--region=us-central1',
     '--allow-unauthenticated',
     '--set-env-vars',
     'GOOGLE_CLOUD_PROJECT=$PROJECT_ID',
-    'CA-app',
+    'ca-app',
   ]
 ```
 
-docker build コマンドでコンテナをビルドした際は、コンテナのタグを `gcr.io/{{project-id}}/CA-app:v1` としていましたが、Cloud Build では `gcr.io/{{project-id}}/CA-app:$BUILD_ID` としている事が分かります。$BUILD_ID には Cloud Build のジョブの ID が入ります。
+docker build コマンドでコンテナをビルドした際は、コンテナのタグを `gcr.io/{{project-id}}/ca-app:v1` としていましたが、Cloud Build では `gcr.io/{{project-id}}/ca-app:$BUILD_ID` としている事が分かります。$BUILD_ID には Cloud Build のジョブの ID が入ります。
 
 <walkthrough-footnote>それでは　Cloud Build のジョブを実行してみましょう。</walkthrough-footnote>
 
@@ -541,7 +541,7 @@ gcloud builds submit --config cloudbuild.yaml .
 
 Cloud Run のコンテナの Image URL が Cloud Build で作成されたイメージになっていることを確認します。
 
-**GUI**: [Cloud Run リビジョン](https://console.cloud.google.com/run/detail/us-central1/CA-app/revisions?project={{project-id}})
+**GUI**: [Cloud Run リビジョン](https://console.cloud.google.com/run/detail/us-central1/ca-app/revisions?project={{project-id}})
 
 
 <walkthrough-footnote>Cloud Build による自動ビルド・デプロイの設定が完了しました。次は Firestore の実装に入ります。</walkthrough-footnote>
@@ -851,161 +851,6 @@ curl -X DELETE ${URL}/firestore/<ID>
 
 <walkthrough-footnote>Firestore についての実装は以上になります。</walkthrough-footnote>
 
-<!-- Step 32 -->
-## チャレンジ問題: Cloud Run の新リビジョンの段階的なデプロイ
-
-Cloud Run には、リビジョン間でトラフィックを切り替える機能があり、A/B テストやカナリアデプロイを行なうことが可能です。main.go の `Hello, CA!` の文言を任意の言葉に変更し、以下の手順でトラフィックの段階的な移行を試してみましょう。
-
-### couldbuild.yaml の変更
-
-以下のように Cloud Run のデプロイ オプションに **--no-traffic** を追加します。
-**REDIS_HOST** の `XXX.XXX.XXX.XXX` には先程作成した REDIS_HOST の IP アドレスを指定してください。
-
-```
-steps:
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID', '.']
-
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/CA-app:$BUILD_ID']
-
-- name: 'gcr.io/cloud-builders/gcloud'
-  args: [
-    'run',
-    'deploy',
-    '--no-traffic',
-    '--image=gcr.io/$PROJECT_ID/CA-app:$BUILD_ID',
-    '--vpc-connector=CA-vpc-connector',
-    '--service-account=dev-sa@$PROJECT_ID.iam.gserviceaccount.com',
-    '--platform=managed',
-    '--region=us-central1',
-    '--allow-unauthenticated',
-    '--set-env-vars',
-    'GOOGLE_CLOUD_PROJECT=$PROJECT_ID',
-    '--set-env-vars',
-    'REDIS_HOST=XXX.XXX.XXX.XXX',
-    '--set-env-vars',
-    'REDIS_PORT=6379',
-    'CA-app',
-  ]
-```
-
-### Cloud Build のジョブを実行
-
-```bash
-gcloud builds submit --config cloudbuild.yaml .
-```
-
-### リビジョン情報の確認
-
-以下のコマンドを実行します。
-
-```bash
-gcloud run revisions list --platform=managed --region=us-central1 --service=CA-app
-```
-
-**--no-traffic** を指定しているため、まだ以前のリビジョンがトラフィックを処理しています。
-
-**GUI**: [Cloud Run 変更内容（リビジョン）](https://console.cloud.google.com/run/detail/us-central1/CA-app/revisions?hl=ja&project={{project-id}})
-
-
-### Cloud Run のトラフィック切り替えの実行
-
-以下のコマンドで全てのトラフィックを最新のリビジョンに切り替えます。
-
-```bash
-gcloud run services update-traffic --to-latest --platform=managed --region=us-central1 CA-app
-```
-
-**GUI**: [Cloud Run 変更内容（リビジョン）](https://console.cloud.google.com/run/detail/us-central1/CA-app/revisions?hl=ja&project={{project-id}})
-
-
-### アプリケーションの確認
-
-以下のコマンドで URL を表示します。
-
-```bash
-echo $URL
-```
-
-
-## チャレンジ問題: Cloud Source Repositories へのコミットをトリガーにしたデプロイ
-
-[Cloud Source Repositories](https://cloud.google.com/source-repositories/) へリポジトリを作成して [Cloud Build トリガー](https://cloud.google.com/cloud-build/docs/running-builds/automate-builds) を設定し、Git の Push をトリガーにしたアプリケーションのビルド、Cloud Run へのデプロイを自動化してみましょう。
-
-### Cloud Source Repository（CSR）に Git レポジトリを作成
-
-今回利用しているソースコードを配置するためのプライベート Git リポジトリを、Cloud Source Repository（CSR）に作成します。
-
-```bash
-gcloud source repos create CA-handson
-```
-
-**GUI**: [Source Repository](https://source.cloud.google.com/{{project-id}}/CA-handson): 作成前にアクセスすると拒否されます。
-
-### Cloud Build トリガーを作成
-
-Cloud Build に前の手順で作成した、プライベート Git リポジトリに push が行われたときに起動されるトリガーを作成します。
-
-```bash
-gcloud beta builds triggers create cloud-source-repositories --description="CA-handson" --repo=CA-handson --branch-pattern=".*" --build-config="webapp/newgrad/cloudbuild.yaml"
-```
-
-**GUI**: [ビルドトリガー](https://console.cloud.google.com/cloud-build/triggers?project={{project-id}})
-
-### Git クライアント設定
-
-Git クライアントで CSR と認証するための設定を行います。
-
-```bash
-git config --global credential.https://source.developers.google.com.helper gcloud.sh
-```
-
-**ヒント**: git コマンドと gcloud で利用している IAM アカウントを紐付けるための設定です。
-
-### 利用者設定
-
-USERNAME を自身のユーザ名に置き換えて実行し、利用者を設定します。
-
-```bash
-git config --global user.name "USERNAME"
-```
-
-### メールアドレス設定
-
-USERNAME@EXAMPLE.com を自身のメールアドレスに置き換えて実行し、利用者のメールアドレスを設定します。
-
-```bash
-git config --global user.email "USERNAME@EXAMPLE.com"
-```
-
-### Git リポジトリ設定
-
-CSR を Git のリモートレポジトリとして登録します。
-これで git コマンドを使い Cloud Shell 上にあるファイル群を管理することができます。
-
-```bash
-git remote add google https://source.developers.google.com/p/$GOOGLE_CLOUD_PROJECT/r/CA-handson
-```
-
-### CSR への資材の転送（プッシュ）
-
-以前の手順で作成した CSR は空の状態です。
-git push コマンドを使い、CSR に資材を転送（プッシュ）します。
-
-```bash
-git push google master
-```
-
-**GUI**: [Source Repository](https://source.cloud.google.com/{{project-id}}/CA-handson) から資材がプッシュされたことを確認できます。
-
-
-### Cloud Build の自動実行を確認
-
-[Cloud Build の履歴](https://console.cloud.google.com/cloud-build/builds?project={{project-id}}) にアクセスし、git push コマンドを実行した時間にビルドが実行されていることを確認します。
-恐らくこのビルドは失敗していると思います。更に時間に余裕がある方は、どこがエラーになっているか Cloud Build のログから確認して修正してみましょう！
-
-
 ## Congraturations!
 
 <walkthrough-conclusion-trophy></walkthrough-conclusion-trophy>
@@ -1029,7 +874,7 @@ gcloud projects delete {{project-id}}
 ### Cloud Run の削除
 
 ```bash
-gcloud run services delete CA-app --platform managed --region=us-central1
+gcloud run services delete ca-app --platform managed --region=us-central1
 ```
 
 ### Firestore データの削除

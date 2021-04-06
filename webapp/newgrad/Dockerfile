@@ -23,4 +23,4 @@ FROM alpine:3.12.0
 RUN apk add --no-cache ca-certificates
 COPY --from=builder /app/CA_app ./
 EXPOSE 8080
-ENTRYPOINT ["/CA_app"]
+ENTRYPOINT ["/ca_app"]
