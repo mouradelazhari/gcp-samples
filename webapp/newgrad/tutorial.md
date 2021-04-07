@@ -291,7 +291,7 @@ Cloud Shell が遅い、固まってしまう、という場合はブースト�
 ハンズオン用のサンプル Web アプリケーションとして　Go 言語で API サーバーを作成していきます。
 
 まずはカレント ディレクトリにある main.go を確認してください。
-単純な HTTP リクエストに対して `Hello, CA!` を返す Go のコードになります。
+単純な HTTP リクエストに対して `Welcome to CA!` を返す Go のコードになります。
 
 
 ```go:main.go
@@ -320,7 +320,7 @@ func main() {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, CA!")
+	fmt.Fprint(w, "Welcome to CA!")
 }
 ```
 
@@ -345,7 +345,7 @@ go run main.go
 画面右上にあるアイコン <walkthrough-web-preview-icon></walkthrough-web-preview-icon> をクリックし、"プレビューのポート: 8080"を選択します。
 これによりブラウザで新しいタブが開き、Cloud Shell 上で起動しているコンテナにアクセスできます。
 
-正しくアプリケーションにアクセスできると、 **Hello, CA!** と表示されます。
+正しくアプリケーションにアクセスできると、 **Welcome to CA!** と表示されます。
 
 確認が終わったら、Cloud Shell 上で Ctrl+c を入力して実行中のアプリケーションを停止します。
 
@@ -391,7 +391,7 @@ gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1
 画面右上にあるアイコン <walkthrough-web-preview-icon></walkthrough-web-preview-icon> をクリックし、"プレビューのポート: 8080"を選択します。
 これによりブラウザで新しいタブが開き、Cloud Shell 上で起動しているコンテナにアクセスできます。
 
-正しくアプリケーションにアクセスできると、先程と同じように `Hello CA!` と表示されます。
+正しくアプリケーションにアクセスできると、先程と同じように `Welcome to CA!` と表示されます。
 
 確認が終わったら、Cloud Shell 上で Ctrl+c を入力して実行中のコンテナを停止します。
 
@@ -738,7 +738,7 @@ Cloud Shell から Cloud Run の Service の URL に対して、以下のよう�
 **登録**
 
 ```
-curl -X POST -d '{"email":"tamago@example.com", "name":"Tamago Taro"}' ${URL}/firestore
+curl -X POST -d '{"email":"newgrad@example.com", "name":"New Grad"}' ${URL}/firestore
 ```
 
 **取得（全件）**
@@ -887,7 +887,7 @@ Container Registry コンソールから、イメージを選択して削除し�
 
 ### Cloud Source Repositories に作成したリポジトリの削除
 
-[CSR の設定画面](https://source.cloud.google.com/admin/settings?projectId={{project-id}}&repository=CA-handson) にアクセスし、「このリポジトリを削除」を実行
+[CSR の設定画面](https://source.cloud.google.com/admin/settings?projectId={{project-id}}&repository=ca-handson) にアクセスし、「このリポジトリを削除」を実行
 
 ### Owner 権限をつけた dev-key.json の削除
 
