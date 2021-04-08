@@ -373,8 +373,8 @@ docker build -t gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1 .
 ```bash
 docker run -p 8080:8080 \
 --name ca-app \
--e GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/auth.json \
--v $PWD/auth.json:/tmp/keys/auth.json:ro \
+-e GOOGLE_APPLICATION_CREDENTIALS=/tmp/keys/dev-key.json \
+-v $PWD/dev-key.json:/tmp/keys/dev-key.json:ro \
 gcr.io/$GOOGLE_CLOUD_PROJECT/ca-app:v1
 ```
 
